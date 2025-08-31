@@ -29,6 +29,77 @@ interface WeaponStats {
   bomb: number
 }
 
+const PARAMETER_LABELS: Record<string, string> = {
+  mobility: '機動力',
+  painting: '塗り',
+  inkEfficiency: 'インク効率',
+  dosukoi: 'ドスコイ',
+  mediumSalmonid: '中シャケ',
+  lesserSalmonid: '小ジャケ',
+  kohaku: 'コウモリ',
+  tower: 'タワー',
+  catapult: 'カタパッド',
+  cannon: 'テッキュウ',
+  pillar: 'ハシラ',
+  mole: 'モグラ',
+  pan: 'テッパン',
+  pot: 'ナベブタ',
+  snake: 'ヘビ',
+  diver: 'ダイバー',
+  bomb: 'バクダン'
+}
+
+const DB_NAME = 'splatoon3-weapon-database'
+const DB_VERSION = 1
+const STORE_NAME = 'weapons'
+
+const openDB = (): Promise<IDBDatabase> => {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION)
+    
+    request.onerror = () => reject(request.error)
+    request.onsuccess = () => resolve(request.result)
+    
+    request.onupgradeneeded = (event) => {
+      const db = (event.target as IDBOpenDBRequest).result
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME)
+      }
+    }
+  })
+}
+
+const saveWeaponDatabase = async (data: Record<string, WeaponStats>): Promise<void> => {
+  try {
+    const db = await openDB()
+    const transaction = db.transaction([STORE_NAME], 'readwrite')
+    const store = transaction.objectStore(STORE_NAME)
+    await new Promise<void>((resolve, reject) => {
+      const request = store.put(data, 'weaponDatabase')
+      request.onsuccess = () => resolve()
+      request.onerror = () => reject(request.error)
+    })
+  } catch (error) {
+    console.error('Failed to save to IndexedDB:', error)
+    localStorage.setItem('splatoon3-weapon-database', JSON.stringify(data))
+  }
+}
+
+const loadWeaponDatabaseFromIndexedDB = async (): Promise<Record<string, WeaponStats> | null> => {
+  try {
+    const db = await openDB()
+    const transaction = db.transaction([STORE_NAME], 'readonly')
+    const store = transaction.objectStore(STORE_NAME)
+    return new Promise((resolve, reject) => {
+      const request = store.get('weaponDatabase')
+      request.onsuccess = () => resolve(request.result || null)
+      request.onerror = () => reject(request.error)
+    })
+  } catch (error) {
+    console.error('Failed to load from IndexedDB:', error)
+    return null
+  }
+}
 
 function App() {
   const [selectedWeapons, setSelectedWeapons] = useState<string[]>(['', '', '', ''])
@@ -123,7 +194,40 @@ function App() {
   const [weaponDatabase, setWeaponDatabase] = useState<Record<string, WeaponStats>>(loadWeaponDatabase())
 
   useEffect(() => {
-    localStorage.setItem('splatoon3-weapon-database', JSON.stringify(weaponDatabase))
+    const initializeIndexedDB = async () => {
+      try {
+        const indexedDBData = await loadWeaponDatabaseFromIndexedDB()
+        
+        if (indexedDBData) {
+          setWeaponDatabase(indexedDBData)
+        } else {
+          const localStorageData = localStorage.getItem('splatoon3-weapon-database')
+          if (localStorageData) {
+            try {
+              const parsedData = JSON.parse(localStorageData)
+              await saveWeaponDatabase(parsedData)
+              setWeaponDatabase(parsedData)
+              localStorage.removeItem('splatoon3-weapon-database')
+              console.log('Successfully migrated data from localStorage to IndexedDB')
+            } catch (error) {
+              console.error('Failed to migrate from localStorage:', error)
+            }
+          } else {
+            const defaultData = getDefaultWeaponDatabase()
+            await saveWeaponDatabase(defaultData)
+            setWeaponDatabase(defaultData)
+          }
+        }
+      } catch (error) {
+        console.error('IndexedDB initialization failed:', error)
+      }
+    }
+    
+    initializeIndexedDB()
+  }, [])
+
+  useEffect(() => {
+    saveWeaponDatabase(weaponDatabase)
   }, [weaponDatabase])
 
 
@@ -253,7 +357,6 @@ function App() {
       }
     }
     setWeaponDatabase(updatedDatabase)
-    localStorage.setItem('splatoon3-weapon-database', JSON.stringify(updatedDatabase))
   }
 
   const addNewWeapon = () => {
@@ -369,28 +472,9 @@ function App() {
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {Object.entries(calculateTeamStats()).map(([key, value]) => {
-                    const labels: Record<string, string> = {
-                      mobility: '機動力',
-                      painting: '塗り',
-                      inkEfficiency: 'インク効率',
-                      dosukoi: 'ドスコイ',
-                      mediumSalmonid: '中シャケ',
-                      lesserSalmonid: '小ジャケ',
-                      kohaku: 'コウモリ',
-                      tower: 'タワー',
-                      catapult: 'カタパッド',
-                      cannon: 'テッキュウ',
-                      pillar: 'ハシラ',
-                      mole: 'モグラ',
-                      pan: 'テッパン',
-                      pot: 'ナベブタ',
-                      snake: 'ヘビ',
-                      diver: 'ダイバー',
-                      bomb: 'バクダン'
-                    }
                     return (
                       <div key={key} className="text-center p-3 bg-white rounded-lg border">
-                        <div className="text-sm text-gray-600">{labels[key]}</div>
+                        <div className="text-sm text-gray-600">{PARAMETER_LABELS[key]}</div>
                         <div className="text-2xl font-bold text-orange-600">{value}/10</div>
                       </div>
                     )
@@ -430,28 +514,9 @@ function App() {
                       {editingWeapon === weaponName && (
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                           {Object.entries(weaponDatabase[weaponName]).map(([stat, value]) => {
-                            const labels: Record<string, string> = {
-                              mobility: '機動力',
-                              painting: '塗り',
-                              inkEfficiency: 'インク効率',
-                              dosukoi: 'ドスコイ',
-                              mediumSalmonid: '中シャケ',
-                              lesserSalmonid: '小ジャケ',
-                              kohaku: 'コウモリ',
-                              tower: 'タワー',
-                              catapult: 'カタパッド',
-                              cannon: 'テッキュウ',
-                              pillar: 'ハシラ',
-                              mole: 'モグラ',
-                              pan: 'テッパン',
-                              pot: 'ナベブタ',
-                              snake: 'ヘビ',
-                              diver: 'ダイバー',
-                              bomb: 'バクダン'
-                            }
                             return (
                               <div key={stat} className="space-y-2">
-                                <Label>{labels[stat]}</Label>
+                                <Label>{PARAMETER_LABELS[stat]}</Label>
                                 <div className="flex items-center gap-2">
                                   <Button
                                     variant="outline"
@@ -486,7 +551,7 @@ function App() {
                         <div className="grid grid-cols-4 md:grid-cols-8 gap-2 text-sm">
                           {Object.entries(weaponDatabase[weaponName]).map(([stat, value]) => (
                             <div key={stat} className="text-center">
-                              <div className="text-gray-600 text-xs">{stat}</div>
+                              <div className="text-gray-600 text-xs">{PARAMETER_LABELS[stat]}</div>
                               <div className="font-semibold">{value}</div>
                             </div>
                           ))}
