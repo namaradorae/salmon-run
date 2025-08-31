@@ -6,7 +6,7 @@ import { Label } from './components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs'
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from 'recharts'
-import { Fish, BarChart3, Settings, Edit, Plus, Minus } from 'lucide-react'
+import { Fish, BarChart3, Settings, Edit, Plus, Minus, Upload, Download, FileText } from 'lucide-react'
 import './App.css'
 
 interface WeaponStats {
@@ -131,6 +131,119 @@ const loadUserStateFromIndexedDB = async (): Promise<string[] | null> => {
     console.error('Failed to load user state from IndexedDB:', error)
     return null
   }
+}
+
+const exportWeaponsToCSV = (weaponDatabase: Record<string, WeaponStats>): void => {
+  const headers = ['武器名', ...Object.values(PARAMETER_LABELS)]
+  const csvData: (string | number)[][] = [headers]
+  
+  Object.entries(weaponDatabase).forEach(([weaponName, stats]) => {
+    const row: (string | number)[] = [weaponName, ...Object.values(stats)]
+    csvData.push(row)
+  })
+  
+  const csvContent = csvData.map(row => row.map(cell => String(cell)).join(',')).join('\n')
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  const link = document.createElement('a')
+  const url = URL.createObjectURL(blob)
+  link.setAttribute('href', url)
+  link.setAttribute('download', 'splatoon3-weapons.csv')
+  link.style.visibility = 'hidden'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+
+const importWeaponsFromCSV = async (file: File, weaponDatabase: Record<string, WeaponStats>, setWeaponDatabase: (db: Record<string, WeaponStats>) => void): Promise<void> => {
+  try {
+    const text = await file.text()
+    const lines = text.split('\n').filter(line => line.trim())
+    
+    if (lines.length < 2) {
+      throw new Error('CSVファイルが空または無効です')
+    }
+    
+    const headers = lines[0].split(',')
+    const expectedHeaders = ['武器名', ...Object.values(PARAMETER_LABELS)]
+    
+    if (headers.length !== expectedHeaders.length) {
+      throw new Error(`CSVヘッダーが無効です。期待される列数: ${expectedHeaders.length}`)
+    }
+    
+    const importedWeapons: Record<string, WeaponStats> = {}
+    
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(',')
+      if (values.length !== headers.length) continue
+      
+      const weaponName = values[0].trim()
+      if (!weaponName) continue
+      
+      const stats: WeaponStats = {
+        mobility: parseInt(values[1]) || 0,
+        painting: parseInt(values[2]) || 0,
+        inkEfficiency: parseInt(values[3]) || 0,
+        dosukoi: parseInt(values[4]) || 0,
+        mediumSalmonid: parseInt(values[5]) || 0,
+        lesserSalmonid: parseInt(values[6]) || 0,
+        kohaku: parseInt(values[7]) || 0,
+        tower: parseInt(values[8]) || 0,
+        catapult: parseInt(values[9]) || 0,
+        cannon: parseInt(values[10]) || 0,
+        pillar: parseInt(values[11]) || 0,
+        mole: parseInt(values[12]) || 0,
+        pan: parseInt(values[13]) || 0,
+        pot: parseInt(values[14]) || 0,
+        snake: parseInt(values[15]) || 0,
+        diver: parseInt(values[16]) || 0,
+        bomb: parseInt(values[17]) || 0
+      }
+      
+      const validStats = Object.values(stats).every(val => val >= 0 && val <= 10)
+      if (validStats) {
+        importedWeapons[weaponName] = stats
+      }
+    }
+    
+    if (Object.keys(importedWeapons).length === 0) {
+      throw new Error('有効な武器データが見つかりませんでした')
+    }
+    
+    const updatedDatabase = { ...weaponDatabase, ...importedWeapons }
+    setWeaponDatabase(updatedDatabase)
+    await saveWeaponDatabase(updatedDatabase)
+    
+    alert(`${Object.keys(importedWeapons).length}個の武器をインポートしました`)
+  } catch (error) {
+    console.error('CSV import failed:', error)
+    alert(`CSVインポートに失敗しました: ${error instanceof Error ? error.message : '不明なエラー'}`)
+  }
+}
+
+const createSampleCSV = (): void => {
+  const sampleWeapons = {
+    'サンプル武器1': { mobility: 7, painting: 8, inkEfficiency: 6, dosukoi: 7, mediumSalmonid: 7, lesserSalmonid: 7, kohaku: 6, tower: 6, catapult: 7, cannon: 6, pillar: 7, mole: 6, pan: 7, pot: 6, snake: 6, diver: 7, bomb: 6 },
+    'サンプル武器2': { mobility: 5, painting: 6, inkEfficiency: 4, dosukoi: 6, mediumSalmonid: 6, lesserSalmonid: 6, kohaku: 7, tower: 6, catapult: 7, cannon: 7, pillar: 7, mole: 7, pan: 8, pot: 7, snake: 7, diver: 8, bomb: 7 }
+  }
+  
+  const headers = ['武器名', ...Object.values(PARAMETER_LABELS)]
+  const csvData: (string | number)[][] = [headers]
+  
+  Object.entries(sampleWeapons).forEach(([weaponName, stats]) => {
+    const row: (string | number)[] = [weaponName, ...Object.values(stats)]
+    csvData.push(row)
+  })
+  
+  const csvContent = csvData.map(row => row.map(cell => String(cell)).join(',')).join('\n')
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  const link = document.createElement('a')
+  const url = URL.createObjectURL(blob)
+  link.setAttribute('href', url)
+  link.setAttribute('download', 'splatoon3-weapons-sample.csv')
+  link.style.visibility = 'hidden'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
 }
 
 function App() {
@@ -545,10 +658,41 @@ function App() {
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   武器パラメータ編集
-                  <Button onClick={addNewWeapon} size="sm">
-                    <Plus className="h-4 w-4 mr-2" />
-                    新しい武器を追加
-                  </Button>
+                  <div className="flex gap-2">
+                    <input
+                      type="file"
+                      accept=".csv"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          importWeaponsFromCSV(file, weaponDatabase, setWeaponDatabase)
+                          e.target.value = ''
+                        }
+                      }}
+                      style={{ display: 'none' }}
+                      id="csv-import"
+                    />
+                    <Button
+                      onClick={() => document.getElementById('csv-import')?.click()}
+                      size="sm"
+                      variant="outline"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      CSVインポート
+                    </Button>
+                    <Button onClick={() => exportWeaponsToCSV(weaponDatabase)} size="sm" variant="outline">
+                      <Download className="h-4 w-4 mr-2" />
+                      CSVエクスポート
+                    </Button>
+                    <Button onClick={createSampleCSV} size="sm" variant="outline">
+                      <FileText className="h-4 w-4 mr-2" />
+                      サンプルCSV
+                    </Button>
+                    <Button onClick={addNewWeapon} size="sm">
+                      <Plus className="h-4 w-4 mr-2" />
+                      新しい武器を追加
+                    </Button>
+                  </div>
                 </CardTitle>
                 <CardDescription>各武器のパラメータを編集できます（0-10の範囲）</CardDescription>
               </CardHeader>
