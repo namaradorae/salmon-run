@@ -213,17 +213,6 @@ function App() {
     'クマサン印のワイパー': { mobility: 7, painting: 8, inkEfficiency: 6, dosukoi: 8, mediumSalmonid: 8, lesserSalmonid: 8, kohaku: 6, tower: 5, catapult: 6, cannon: 6, pillar: 6, mole: 6, pan: 8, pot: 7, snake: 6, diver: 6, bomb: 6 },
     'クマサン印のローラー': { mobility: 6, painting: 10, inkEfficiency: 7, dosukoi: 8, mediumSalmonid: 8, lesserSalmonid: 8, kohaku: 4, tower: 3, catapult: 5, cannon: 4, pillar: 6, mole: 5, pan: 9, pot: 9, snake: 5, diver: 5, bomb: 4 }
   })
-  const loadWeaponDatabase = (): Record<string, WeaponStats> => {
-    const saved = localStorage.getItem('splatoon3-weapon-database')
-    if (saved) {
-      try {
-        return JSON.parse(saved)
-      } catch (e) {
-        console.error('Failed to parse saved weapon database:', e)
-      }
-    }
-    return getDefaultWeaponDatabase()
-  }
 
   const [weaponDatabase, setWeaponDatabase] = useState<Record<string, WeaponStats>>({})
 
