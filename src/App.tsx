@@ -101,9 +101,43 @@ const loadWeaponDatabaseFromIndexedDB = async (): Promise<Record<string, WeaponS
   }
 }
 
+const saveUserState = async (selectedWeapons: string[]): Promise<void> => {
+  try {
+    const db = await openDB()
+    const transaction = db.transaction([STORE_NAME], 'readwrite')
+    const store = transaction.objectStore(STORE_NAME)
+    await new Promise<void>((resolve, reject) => {
+      const request = store.put(selectedWeapons, 'userSelectedWeapons')
+      request.onsuccess = () => resolve()
+      request.onerror = () => reject(request.error)
+    })
+  } catch (error) {
+    console.error('Failed to save user state to IndexedDB:', error)
+    localStorage.setItem('splatoon3-user-selections', JSON.stringify(selectedWeapons))
+  }
+}
+
+const loadUserStateFromIndexedDB = async (): Promise<string[] | null> => {
+  try {
+    const db = await openDB()
+    const transaction = db.transaction([STORE_NAME], 'readonly')
+    const store = transaction.objectStore(STORE_NAME)
+    return new Promise((resolve, reject) => {
+      const request = store.get('userSelectedWeapons')
+      request.onsuccess = () => resolve(request.result || null)
+      request.onerror = () => reject(request.error)
+    })
+  } catch (error) {
+    console.error('Failed to load user state from IndexedDB:', error)
+    return null
+  }
+}
+
 function App() {
   const [selectedWeapons, setSelectedWeapons] = useState<string[]>(['', '', '', ''])
   const [editingWeapon, setEditingWeapon] = useState<string | null>(null)
+  const [isInitialized, setIsInitialized] = useState(false)
+  const [isLoadingFromDB, setIsLoadingFromDB] = useState(true)
   
   const getDefaultWeaponDatabase = (): Record<string, WeaponStats> => ({
     'ボールドマーカー': { mobility: 8, painting: 6, inkEfficiency: 7, dosukoi: 7, mediumSalmonid: 7, lesserSalmonid: 7, kohaku: 5, tower: 4, catapult: 6, cannon: 5, pillar: 6, mole: 5, pan: 7, pot: 6, snake: 5, diver: 6, bomb: 5 },
@@ -191,7 +225,7 @@ function App() {
     return getDefaultWeaponDatabase()
   }
 
-  const [weaponDatabase, setWeaponDatabase] = useState<Record<string, WeaponStats>>(loadWeaponDatabase())
+  const [weaponDatabase, setWeaponDatabase] = useState<Record<string, WeaponStats>>({})
 
   useEffect(() => {
     const initializeIndexedDB = async () => {
@@ -208,9 +242,9 @@ function App() {
               await saveWeaponDatabase(parsedData)
               setWeaponDatabase(parsedData)
               localStorage.removeItem('splatoon3-weapon-database')
-              console.log('Successfully migrated data from localStorage to IndexedDB')
+              console.log('Successfully migrated weapon database from localStorage to IndexedDB')
             } catch (error) {
-              console.error('Failed to migrate from localStorage:', error)
+              console.error('Failed to migrate weapon database from localStorage:', error)
             }
           } else {
             const defaultData = getDefaultWeaponDatabase()
@@ -218,8 +252,33 @@ function App() {
             setWeaponDatabase(defaultData)
           }
         }
+
+        const userSelections = await loadUserStateFromIndexedDB()
+        if (userSelections) {
+          setSelectedWeapons(userSelections)
+        } else {
+          const localStorageSelections = localStorage.getItem('splatoon3-user-selections')
+          if (localStorageSelections) {
+            try {
+              const parsedSelections = JSON.parse(localStorageSelections)
+              setSelectedWeapons(parsedSelections)
+              await saveUserState(parsedSelections)
+              localStorage.removeItem('splatoon3-user-selections')
+              console.log('Successfully migrated user selections from localStorage to IndexedDB')
+            } catch (error) {
+              console.error('Failed to migrate user selections from localStorage:', error)
+            }
+          }
+        }
+        
+        setIsLoadingFromDB(false)
+        setIsInitialized(true)
       } catch (error) {
         console.error('IndexedDB initialization failed:', error)
+        const defaultData = getDefaultWeaponDatabase()
+        setWeaponDatabase(defaultData)
+        setIsLoadingFromDB(false)
+        setIsInitialized(true)
       }
     }
     
@@ -227,8 +286,16 @@ function App() {
   }, [])
 
   useEffect(() => {
-    saveWeaponDatabase(weaponDatabase)
-  }, [weaponDatabase])
+    if (isInitialized && !isLoadingFromDB) {
+      saveWeaponDatabase(weaponDatabase)
+    }
+  }, [weaponDatabase, isInitialized, isLoadingFromDB])
+
+  useEffect(() => {
+    if (isInitialized) {
+      saveUserState(selectedWeapons)
+    }
+  }, [selectedWeapons, isInitialized])
 
 
   const weaponList = Object.keys(weaponDatabase)
