@@ -1,19 +1,21 @@
-import { useState } from 'react'
-import { Settings, BarChart3, Fish, Edit, Plus, Minus } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts'
+import { useState, useEffect } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card'
+import { Button } from './components/ui/button'
+import { Input } from './components/ui/input'
+import { Label } from './components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs'
+import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from 'recharts'
+import { Fish, BarChart3, Settings, Edit, Plus, Minus } from 'lucide-react'
 import './App.css'
 
 interface WeaponStats {
   mobility: number
   painting: number
   inkEfficiency: number
-  lesserSalmonidProcessing: number
+  dosukoi: number
+  mediumSalmonid: number
+  lesserSalmonid: number
   kohaku: number
   tower: number
   catapult: number
@@ -32,79 +34,97 @@ function App() {
   const [selectedWeapons, setSelectedWeapons] = useState<string[]>(['', '', '', ''])
   const [editingWeapon, setEditingWeapon] = useState<string | null>(null)
   
-  const [weaponDatabase, setWeaponDatabase] = useState<Record<string, WeaponStats>>({
-    'ボールドマーカー': { mobility: 8, painting: 6, inkEfficiency: 7, lesserSalmonidProcessing: 7, kohaku: 5, tower: 4, catapult: 6, cannon: 5, pillar: 6, mole: 5, pan: 7, pot: 6, snake: 5, diver: 6, bomb: 5 },
-    'わかばシューター': { mobility: 7, painting: 8, inkEfficiency: 8, lesserSalmonidProcessing: 8, kohaku: 6, tower: 5, catapult: 6, cannon: 5, pillar: 6, mole: 6, pan: 7, pot: 6, snake: 6, diver: 6, bomb: 6 },
-    'シャープマーカー': { mobility: 7, painting: 6, inkEfficiency: 6, lesserSalmonidProcessing: 7, kohaku: 6, tower: 5, catapult: 6, cannon: 6, pillar: 6, mole: 6, pan: 7, pot: 6, snake: 6, diver: 6, bomb: 6 },
-    'プロモデラーMG': { mobility: 8, painting: 7, inkEfficiency: 7, lesserSalmonidProcessing: 8, kohaku: 5, tower: 4, catapult: 5, cannon: 5, pillar: 5, mole: 5, pan: 6, pot: 5, snake: 5, diver: 5, bomb: 5 },
-    'スプラシューター': { mobility: 7, painting: 8, inkEfficiency: 6, lesserSalmonidProcessing: 7, kohaku: 6, tower: 6, catapult: 7, cannon: 6, pillar: 7, mole: 6, pan: 7, pot: 6, snake: 6, diver: 7, bomb: 6 },
-    'N-ZAP85': { mobility: 9, painting: 9, inkEfficiency: 8, lesserSalmonidProcessing: 9, kohaku: 5, tower: 5, catapult: 6, cannon: 5, pillar: 6, mole: 6, pan: 7, pot: 6, snake: 6, diver: 6, bomb: 6 },
-    '.52ガロン': { mobility: 5, painting: 6, inkEfficiency: 4, lesserSalmonidProcessing: 6, kohaku: 7, tower: 6, catapult: 7, cannon: 7, pillar: 7, mole: 7, pan: 8, pot: 7, snake: 7, diver: 8, bomb: 7 },
-    'プライムシューター': { mobility: 4, painting: 5, inkEfficiency: 5, lesserSalmonidProcessing: 5, kohaku: 8, tower: 7, catapult: 8, cannon: 8, pillar: 8, mole: 7, pan: 8, pot: 7, snake: 7, diver: 8, bomb: 7 },
-    '.96ガロン': { mobility: 3, painting: 5, inkEfficiency: 3, lesserSalmonidProcessing: 5, kohaku: 9, tower: 8, catapult: 9, cannon: 9, pillar: 8, mole: 8, pan: 9, pot: 8, snake: 8, diver: 9, bomb: 8 },
-    'ジェットスイーパー': { mobility: 4, painting: 7, inkEfficiency: 5, lesserSalmonidProcessing: 6, kohaku: 7, tower: 8, catapult: 7, cannon: 7, pillar: 7, mole: 7, pan: 6, pot: 6, snake: 7, diver: 7, bomb: 6 },
-    'スペースシューター': { mobility: 6, painting: 6, inkEfficiency: 6, lesserSalmonidProcessing: 6, kohaku: 6, tower: 6, catapult: 6, cannon: 6, pillar: 6, mole: 6, pan: 6, pot: 6, snake: 6, diver: 6, bomb: 6 },
-    'L3リールガン': { mobility: 8, painting: 5, inkEfficiency: 7, lesserSalmonidProcessing: 7, kohaku: 6, tower: 5, catapult: 6, cannon: 6, pillar: 6, mole: 6, pan: 7, pot: 6, snake: 6, diver: 6, bomb: 6 },
-    'H3リールガン': { mobility: 6, painting: 6, inkEfficiency: 6, lesserSalmonidProcessing: 6, kohaku: 7, tower: 6, catapult: 7, cannon: 7, pillar: 7, mole: 6, pan: 7, pot: 6, snake: 6, diver: 7, bomb: 6 },
-    'ボトルガイザー': { mobility: 5, painting: 4, inkEfficiency: 4, lesserSalmonidProcessing: 5, kohaku: 8, tower: 7, catapult: 8, cannon: 8, pillar: 7, mole: 7, pan: 8, pot: 7, snake: 7, diver: 8, bomb: 7 },
-    'カーボンローラー': { mobility: 10, painting: 8, inkEfficiency: 9, lesserSalmonidProcessing: 9, kohaku: 2, tower: 1, catapult: 3, cannon: 2, pillar: 4, mole: 3, pan: 8, pot: 7, snake: 3, diver: 3, bomb: 2 },
-    'スプラローラー': { mobility: 8, painting: 10, inkEfficiency: 8, lesserSalmonidProcessing: 8, kohaku: 3, tower: 2, catapult: 4, cannon: 3, pillar: 5, mole: 4, pan: 8, pot: 8, snake: 4, diver: 4, bomb: 3 },
-    'ダイナモローラー': { mobility: 3, painting: 10, inkEfficiency: 4, lesserSalmonidProcessing: 6, kohaku: 5, tower: 3, catapult: 6, cannon: 5, pillar: 7, mole: 6, pan: 9, pot: 9, snake: 6, diver: 6, bomb: 5 },
-    'ヴァリアブルローラー': { mobility: 6, painting: 8, inkEfficiency: 6, lesserSalmonidProcessing: 7, kohaku: 4, tower: 3, catapult: 5, cannon: 4, pillar: 6, mole: 5, pan: 7, pot: 7, snake: 5, diver: 5, bomb: 4 },
-    'ワイドローラー': { mobility: 5, painting: 9, inkEfficiency: 6, lesserSalmonidProcessing: 7, kohaku: 4, tower: 2, catapult: 5, cannon: 4, pillar: 6, mole: 5, pan: 8, pot: 8, snake: 5, diver: 5, bomb: 4 },
-    'ビッグスウィッグローラー': { mobility: 2, painting: 10, inkEfficiency: 3, lesserSalmonidProcessing: 5, kohaku: 6, tower: 4, catapult: 7, cannon: 6, pillar: 8, mole: 7, pan: 9, pot: 9, snake: 7, diver: 7, bomb: 6 },
-    'スプラチャージャー': { mobility: 3, painting: 4, inkEfficiency: 5, lesserSalmonidProcessing: 4, kohaku: 9, tower: 10, catapult: 8, cannon: 9, pillar: 8, mole: 8, pan: 6, pot: 6, snake: 9, diver: 9, bomb: 8 },
-    'スクイックリンα': { mobility: 6, painting: 3, inkEfficiency: 9, lesserSalmonidProcessing: 5, kohaku: 8, tower: 9, catapult: 7, cannon: 8, pillar: 7, mole: 7, pan: 5, pot: 5, snake: 8, diver: 8, bomb: 7 },
-    'リッター4K': { mobility: 1, painting: 3, inkEfficiency: 3, lesserSalmonidProcessing: 3, kohaku: 10, tower: 10, catapult: 9, cannon: 10, pillar: 9, mole: 9, pan: 5, pot: 5, snake: 10, diver: 10, bomb: 9 },
-    '14式竹筒銃・甲': { mobility: 6, painting: 3, inkEfficiency: 9, lesserSalmonidProcessing: 5, kohaku: 8, tower: 9, catapult: 7, cannon: 8, pillar: 7, mole: 7, pan: 5, pot: 5, snake: 8, diver: 8, bomb: 7 },
-    'ソイチューバー': { mobility: 5, painting: 4, inkEfficiency: 7, lesserSalmonidProcessing: 5, kohaku: 7, tower: 8, catapult: 6, cannon: 7, pillar: 6, mole: 6, pan: 5, pot: 5, snake: 7, diver: 7, bomb: 6 },
-    'R-PEN/5H': { mobility: 4, painting: 4, inkEfficiency: 6, lesserSalmonidProcessing: 4, kohaku: 8, tower: 9, catapult: 7, cannon: 8, pillar: 7, mole: 7, pan: 5, pot: 5, snake: 8, diver: 8, bomb: 7 },
-    'R-PEN/5B': { mobility: 4, painting: 4, inkEfficiency: 6, lesserSalmonidProcessing: 4, kohaku: 8, tower: 9, catapult: 7, cannon: 8, pillar: 7, mole: 7, pan: 5, pot: 5, snake: 8, diver: 8, bomb: 7 },
-    'ホットブラスター': { mobility: 5, painting: 5, inkEfficiency: 5, lesserSalmonidProcessing: 6, kohaku: 8, tower: 7, catapult: 8, cannon: 8, pillar: 7, mole: 8, pan: 7, pot: 8, snake: 7, diver: 8, bomb: 9 },
-    'ロングブラスター': { mobility: 3, painting: 4, inkEfficiency: 4, lesserSalmonidProcessing: 5, kohaku: 9, tower: 8, catapult: 9, cannon: 9, pillar: 8, mole: 9, pan: 6, pot: 7, snake: 8, diver: 9, bomb: 9 },
-    'クラッシュブラスター': { mobility: 7, painting: 6, inkEfficiency: 6, lesserSalmonidProcessing: 7, kohaku: 7, tower: 6, catapult: 7, cannon: 7, pillar: 6, mole: 7, pan: 6, pot: 7, snake: 6, diver: 7, bomb: 8 },
-    'ラピッドブラスター': { mobility: 6, painting: 5, inkEfficiency: 6, lesserSalmonidProcessing: 6, kohaku: 7, tower: 7, catapult: 7, cannon: 7, pillar: 7, mole: 7, pan: 6, pot: 7, snake: 7, diver: 7, bomb: 8 },
-    'ラピッドブラスタープロ': { mobility: 4, painting: 4, inkEfficiency: 5, lesserSalmonidProcessing: 5, kohaku: 8, tower: 8, catapult: 8, cannon: 8, pillar: 8, mole: 8, pan: 6, pot: 7, snake: 8, diver: 8, bomb: 8 },
-    'Rブラスターエリート': { mobility: 5, painting: 4, inkEfficiency: 5, lesserSalmonidProcessing: 5, kohaku: 8, tower: 7, catapult: 8, cannon: 8, pillar: 7, mole: 8, pan: 6, pot: 7, snake: 7, diver: 8, bomb: 8 },
-    'S-BLAST92': { mobility: 6, painting: 5, inkEfficiency: 6, lesserSalmonidProcessing: 6, kohaku: 7, tower: 7, catapult: 7, cannon: 7, pillar: 7, mole: 7, pan: 6, pot: 7, snake: 7, diver: 7, bomb: 8 },
-    'ノヴァブラスター': { mobility: 8, painting: 6, inkEfficiency: 7, lesserSalmonidProcessing: 7, kohaku: 6, tower: 5, catapult: 6, cannon: 6, pillar: 5, mole: 6, pan: 6, pot: 6, snake: 5, diver: 6, bomb: 7 },
-    'バケットスロッシャー': { mobility: 5, painting: 7, inkEfficiency: 7, lesserSalmonidProcessing: 6, kohaku: 7, tower: 5, catapult: 6, cannon: 6, pillar: 6, mole: 6, pan: 7, pot: 8, snake: 6, diver: 7, bomb: 6 },
-    'ヒッセン': { mobility: 6, painting: 8, inkEfficiency: 6, lesserSalmonidProcessing: 7, kohaku: 6, tower: 4, catapult: 5, cannon: 5, pillar: 5, mole: 5, pan: 7, pot: 8, snake: 5, diver: 6, bomb: 5 },
-    'スクリュースロッシャー': { mobility: 4, painting: 6, inkEfficiency: 5, lesserSalmonidProcessing: 5, kohaku: 8, tower: 6, catapult: 7, cannon: 7, pillar: 7, mole: 7, pan: 6, pot: 7, snake: 7, diver: 7, bomb: 6 },
-    'オーバーフロッシャー': { mobility: 3, painting: 8, inkEfficiency: 4, lesserSalmonidProcessing: 5, kohaku: 9, tower: 7, catapult: 8, cannon: 8, pillar: 8, mole: 8, pan: 6, pot: 7, snake: 8, diver: 8, bomb: 7 },
-    'エクスプロッシャー': { mobility: 2, painting: 9, inkEfficiency: 3, lesserSalmonidProcessing: 4, kohaku: 9, tower: 8, catapult: 9, cannon: 9, pillar: 9, mole: 9, pan: 5, pot: 6, snake: 9, diver: 9, bomb: 8 },
-    'モップリン': { mobility: 7, painting: 6, inkEfficiency: 7, lesserSalmonidProcessing: 7, kohaku: 5, tower: 4, catapult: 5, cannon: 5, pillar: 5, mole: 5, pan: 6, pot: 7, snake: 5, diver: 5, bomb: 5 },
-    'ドレッジャー': { mobility: 4, painting: 7, inkEfficiency: 5, lesserSalmonidProcessing: 5, kohaku: 7, tower: 6, catapult: 7, cannon: 7, pillar: 7, mole: 7, pan: 6, pot: 7, snake: 7, diver: 7, bomb: 6 },
-    'スプラスピナー': { mobility: 4, painting: 8, inkEfficiency: 5, lesserSalmonidProcessing: 7, kohaku: 7, tower: 6, catapult: 7, cannon: 7, pillar: 7, mole: 7, pan: 7, pot: 6, snake: 7, diver: 7, bomb: 6 },
-    'バレルスピナー': { mobility: 2, painting: 9, inkEfficiency: 3, lesserSalmonidProcessing: 6, kohaku: 8, tower: 7, catapult: 8, cannon: 8, pillar: 8, mole: 8, pan: 7, pot: 6, snake: 8, diver: 8, bomb: 7 },
-    'ハイドラント': { mobility: 1, painting: 10, inkEfficiency: 2, lesserSalmonidProcessing: 5, kohaku: 9, tower: 8, catapult: 9, cannon: 9, pillar: 9, mole: 9, pan: 6, pot: 5, snake: 9, diver: 9, bomb: 8 },
-    'クーゲルシュライバー': { mobility: 3, painting: 8, inkEfficiency: 4, lesserSalmonidProcessing: 6, kohaku: 8, tower: 7, catapult: 8, cannon: 8, pillar: 8, mole: 8, pan: 7, pot: 6, snake: 8, diver: 8, bomb: 7 },
-    'ノーチラス47': { mobility: 5, painting: 7, inkEfficiency: 6, lesserSalmonidProcessing: 6, kohaku: 7, tower: 6, catapult: 7, cannon: 7, pillar: 7, mole: 7, pan: 7, pot: 6, snake: 7, diver: 7, bomb: 6 },
-    'イグザミナー': { mobility: 6, painting: 6, inkEfficiency: 7, lesserSalmonidProcessing: 6, kohaku: 6, tower: 6, catapult: 6, cannon: 6, pillar: 6, mole: 6, pan: 6, pot: 6, snake: 6, diver: 6, bomb: 6 },
-    'パブロ': { mobility: 10, painting: 9, inkEfficiency: 9, lesserSalmonidProcessing: 9, kohaku: 2, tower: 1, catapult: 2, cannon: 2, pillar: 3, mole: 2, pan: 7, pot: 6, snake: 2, diver: 2, bomb: 2 },
-    'ホクサイ': { mobility: 8, painting: 8, inkEfficiency: 8, lesserSalmonidProcessing: 8, kohaku: 3, tower: 2, catapult: 3, cannon: 3, pillar: 4, mole: 3, pan: 7, pot: 7, snake: 3, diver: 3, bomb: 3 },
-    'フィンセント': { mobility: 7, painting: 7, inkEfficiency: 7, lesserSalmonidProcessing: 7, kohaku: 4, tower: 3, catapult: 4, cannon: 4, pillar: 5, mole: 4, pan: 6, pot: 6, snake: 4, diver: 4, bomb: 4 },
-    'スプラマニューバー': { mobility: 8, painting: 6, inkEfficiency: 7, lesserSalmonidProcessing: 7, kohaku: 6, tower: 5, catapult: 6, cannon: 6, pillar: 6, mole: 6, pan: 7, pot: 6, snake: 6, diver: 6, bomb: 6 },
-    'スパッタリー': { mobility: 9, painting: 5, inkEfficiency: 8, lesserSalmonidProcessing: 7, kohaku: 5, tower: 4, catapult: 5, cannon: 5, pillar: 5, mole: 5, pan: 6, pot: 5, snake: 5, diver: 5, bomb: 5 },
-    'ケルビン525': { mobility: 7, painting: 7, inkEfficiency: 6, lesserSalmonidProcessing: 7, kohaku: 6, tower: 5, catapult: 6, cannon: 6, pillar: 6, mole: 6, pan: 7, pot: 6, snake: 6, diver: 6, bomb: 6 },
-    'デュアルスイーパー': { mobility: 6, painting: 8, inkEfficiency: 5, lesserSalmonidProcessing: 7, kohaku: 7, tower: 6, catapult: 7, cannon: 7, pillar: 7, mole: 7, pan: 7, pot: 6, snake: 7, diver: 7, bomb: 6 },
-    'クアッドホッパーブラック': { mobility: 10, painting: 4, inkEfficiency: 7, lesserSalmonidProcessing: 6, kohaku: 5, tower: 4, catapult: 5, cannon: 5, pillar: 5, mole: 5, pan: 6, pot: 5, snake: 5, diver: 5, bomb: 5 },
-    'ガエンFF': { mobility: 5, painting: 6, inkEfficiency: 5, lesserSalmonidProcessing: 6, kohaku: 7, tower: 6, catapult: 7, cannon: 7, pillar: 7, mole: 7, pan: 7, pot: 6, snake: 7, diver: 7, bomb: 6 },
-    'ドライブワイパー': { mobility: 8, painting: 7, inkEfficiency: 7, lesserSalmonidProcessing: 8, kohaku: 5, tower: 4, catapult: 5, cannon: 5, pillar: 5, mole: 5, pan: 7, pot: 6, snake: 5, diver: 5, bomb: 5 },
-    'ジムワイパー': { mobility: 6, painting: 6, inkEfficiency: 6, lesserSalmonidProcessing: 7, kohaku: 6, tower: 5, catapult: 6, cannon: 6, pillar: 6, mole: 6, pan: 7, pot: 6, snake: 6, diver: 6, bomb: 6 },
-    'パラシェルター': { mobility: 4, painting: 6, inkEfficiency: 5, lesserSalmonidProcessing: 5, kohaku: 7, tower: 8, catapult: 7, cannon: 7, pillar: 7, mole: 7, pan: 6, pot: 6, snake: 7, diver: 7, bomb: 6 },
-    'キャンピングシェルター': { mobility: 2, painting: 5, inkEfficiency: 4, lesserSalmonidProcessing: 4, kohaku: 8, tower: 9, catapult: 8, cannon: 8, pillar: 8, mole: 8, pan: 5, pot: 5, snake: 8, diver: 8, bomb: 7 },
-    'スパイガジェット': { mobility: 6, painting: 5, inkEfficiency: 6, lesserSalmonidProcessing: 5, kohaku: 6, tower: 7, catapult: 6, cannon: 6, pillar: 6, mole: 6, pan: 6, pot: 6, snake: 6, diver: 6, bomb: 6 },
-    'トライストリンガー': { mobility: 5, painting: 5, inkEfficiency: 6, lesserSalmonidProcessing: 5, kohaku: 7, tower: 8, catapult: 7, cannon: 7, pillar: 7, mole: 7, pan: 6, pot: 6, snake: 7, diver: 7, bomb: 7 },
-    'LACT-450': { mobility: 4, painting: 4, inkEfficiency: 5, lesserSalmonidProcessing: 4, kohaku: 8, tower: 9, catapult: 8, cannon: 8, pillar: 8, mole: 8, pan: 5, pot: 5, snake: 8, diver: 8, bomb: 8 },
-    'クマサン印のチャージャー': { mobility: 2, painting: 3, inkEfficiency: 2, lesserSalmonidProcessing: 3, kohaku: 10, tower: 10, catapult: 10, cannon: 10, pillar: 10, mole: 10, pan: 7, pot: 7, snake: 10, diver: 10, bomb: 10 },
-    'クマサン印のブラスター': { mobility: 4, painting: 6, inkEfficiency: 4, lesserSalmonidProcessing: 6, kohaku: 9, tower: 8, catapult: 9, cannon: 9, pillar: 8, mole: 9, pan: 8, pot: 9, snake: 8, diver: 9, bomb: 10 },
-    'クマサン印のスロッシャー': { mobility: 3, painting: 9, inkEfficiency: 3, lesserSalmonidProcessing: 6, kohaku: 9, tower: 7, catapult: 8, cannon: 8, pillar: 8, mole: 8, pan: 7, pot: 8, snake: 8, diver: 8, bomb: 8 },
-    'クマサン印のマニューバー': { mobility: 7, painting: 7, inkEfficiency: 6, lesserSalmonidProcessing: 7, kohaku: 7, tower: 6, catapult: 7, cannon: 7, pillar: 7, mole: 7, pan: 8, pot: 7, snake: 7, diver: 7, bomb: 7 },
-    'クマサン印のシェルター': { mobility: 3, painting: 6, inkEfficiency: 4, lesserSalmonidProcessing: 5, kohaku: 8, tower: 9, catapult: 8, cannon: 8, pillar: 8, mole: 8, pan: 7, pot: 7, snake: 8, diver: 8, bomb: 8 },
-    'クマサン印のストリンガー': { mobility: 4, painting: 5, inkEfficiency: 5, lesserSalmonidProcessing: 5, kohaku: 8, tower: 9, catapult: 8, cannon: 8, pillar: 8, mole: 8, pan: 6, pot: 6, snake: 8, diver: 8, bomb: 8 },
-    'クマサン印のワイパー': { mobility: 7, painting: 8, inkEfficiency: 6, lesserSalmonidProcessing: 8, kohaku: 6, tower: 5, catapult: 6, cannon: 6, pillar: 6, mole: 6, pan: 8, pot: 7, snake: 6, diver: 6, bomb: 6 },
-    'クマサン印のローラー': { mobility: 6, painting: 10, inkEfficiency: 7, lesserSalmonidProcessing: 8, kohaku: 4, tower: 3, catapult: 5, cannon: 4, pillar: 6, mole: 5, pan: 9, pot: 9, snake: 5, diver: 5, bomb: 4 }
+  const loadWeaponDatabase = (): Record<string, WeaponStats> => {
+    const saved = localStorage.getItem('splatoon3-weapon-database')
+    if (saved) {
+      try {
+        return JSON.parse(saved)
+      } catch (e) {
+        console.error('Failed to parse saved weapon database:', e)
+      }
+    }
+    return getDefaultWeaponDatabase()
+  }
+
+  const [weaponDatabase, setWeaponDatabase] = useState<Record<string, WeaponStats>>(loadWeaponDatabase())
+
+  useEffect(() => {
+    localStorage.setItem('splatoon3-weapon-database', JSON.stringify(weaponDatabase))
+  }, [weaponDatabase])
+
+  const getDefaultWeaponDatabase = (): Record<string, WeaponStats> => ({
+    'ボールドマーカー': { mobility: 8, painting: 6, inkEfficiency: 7, dosukoi: 7, mediumSalmonid: 7, lesserSalmonid: 7, kohaku: 5, tower: 4, catapult: 6, cannon: 5, pillar: 6, mole: 5, pan: 7, pot: 6, snake: 5, diver: 6, bomb: 5 },
+    'わかばシューター': { mobility: 7, painting: 8, inkEfficiency: 8, dosukoi: 8, mediumSalmonid: 8, lesserSalmonid: 8, kohaku: 6, tower: 5, catapult: 6, cannon: 5, pillar: 6, mole: 6, pan: 7, pot: 6, snake: 6, diver: 6, bomb: 6 },
+    'シャープマーカー': { mobility: 7, painting: 6, inkEfficiency: 6, dosukoi: 7, mediumSalmonid: 7, lesserSalmonid: 7, kohaku: 6, tower: 5, catapult: 6, cannon: 6, pillar: 6, mole: 6, pan: 7, pot: 6, snake: 6, diver: 6, bomb: 6 },
+    'プロモデラーMG': { mobility: 8, painting: 7, inkEfficiency: 7, dosukoi: 8, mediumSalmonid: 8, lesserSalmonid: 8, kohaku: 5, tower: 4, catapult: 5, cannon: 5, pillar: 5, mole: 5, pan: 6, pot: 5, snake: 5, diver: 5, bomb: 5 },
+    'スプラシューター': { mobility: 7, painting: 8, inkEfficiency: 6, dosukoi: 7, mediumSalmonid: 7, lesserSalmonid: 7, kohaku: 6, tower: 6, catapult: 7, cannon: 6, pillar: 7, mole: 6, pan: 7, pot: 6, snake: 6, diver: 7, bomb: 6 },
+    'N-ZAP85': { mobility: 9, painting: 9, inkEfficiency: 8, dosukoi: 9, mediumSalmonid: 9, lesserSalmonid: 9, kohaku: 5, tower: 5, catapult: 6, cannon: 5, pillar: 6, mole: 6, pan: 7, pot: 6, snake: 6, diver: 6, bomb: 6 },
+    '.52ガロン': { mobility: 5, painting: 6, inkEfficiency: 4, dosukoi: 6, mediumSalmonid: 6, lesserSalmonid: 6, kohaku: 7, tower: 6, catapult: 7, cannon: 7, pillar: 7, mole: 7, pan: 8, pot: 7, snake: 7, diver: 8, bomb: 7 },
+    'プライムシューター': { mobility: 4, painting: 5, inkEfficiency: 5, dosukoi: 5, mediumSalmonid: 5, lesserSalmonid: 5, kohaku: 8, tower: 7, catapult: 8, cannon: 8, pillar: 8, mole: 7, pan: 8, pot: 7, snake: 7, diver: 8, bomb: 7 },
+    '.96ガロン': { mobility: 3, painting: 5, inkEfficiency: 3, dosukoi: 5, mediumSalmonid: 5, lesserSalmonid: 5, kohaku: 9, tower: 8, catapult: 9, cannon: 9, pillar: 8, mole: 8, pan: 9, pot: 8, snake: 8, diver: 9, bomb: 8 },
+    'ジェットスイーパー': { mobility: 4, painting: 7, inkEfficiency: 5, dosukoi: 6, mediumSalmonid: 6, lesserSalmonid: 6, kohaku: 7, tower: 8, catapult: 7, cannon: 7, pillar: 7, mole: 7, pan: 6, pot: 6, snake: 7, diver: 7, bomb: 6 },
+    'スペースシューター': { mobility: 6, painting: 6, inkEfficiency: 6, dosukoi: 6, mediumSalmonid: 6, lesserSalmonid: 6, kohaku: 6, tower: 6, catapult: 6, cannon: 6, pillar: 6, mole: 6, pan: 6, pot: 6, snake: 6, diver: 6, bomb: 6 },
+    'L3リールガン': { mobility: 8, painting: 5, inkEfficiency: 7, dosukoi: 7, mediumSalmonid: 7, lesserSalmonid: 7, kohaku: 6, tower: 5, catapult: 6, cannon: 6, pillar: 6, mole: 6, pan: 7, pot: 6, snake: 6, diver: 6, bomb: 6 },
+    'H3リールガン': { mobility: 6, painting: 6, inkEfficiency: 6, dosukoi: 6, mediumSalmonid: 6, lesserSalmonid: 6, kohaku: 7, tower: 6, catapult: 7, cannon: 7, pillar: 7, mole: 6, pan: 7, pot: 6, snake: 6, diver: 7, bomb: 6 },
+    'ボトルガイザー': { mobility: 5, painting: 4, inkEfficiency: 4, dosukoi: 5, mediumSalmonid: 5, lesserSalmonid: 5, kohaku: 8, tower: 7, catapult: 8, cannon: 8, pillar: 7, mole: 7, pan: 8, pot: 7, snake: 7, diver: 8, bomb: 7 },
+    'カーボンローラー': { mobility: 10, painting: 8, inkEfficiency: 9, dosukoi: 9, mediumSalmonid: 9, lesserSalmonid: 9, kohaku: 2, tower: 1, catapult: 3, cannon: 2, pillar: 4, mole: 3, pan: 8, pot: 7, snake: 3, diver: 3, bomb: 2 },
+    'スプラローラー': { mobility: 8, painting: 10, inkEfficiency: 8, dosukoi: 8, mediumSalmonid: 8, lesserSalmonid: 8, kohaku: 3, tower: 2, catapult: 4, cannon: 3, pillar: 5, mole: 4, pan: 8, pot: 8, snake: 4, diver: 4, bomb: 3 },
+    'ダイナモローラー': { mobility: 3, painting: 10, inkEfficiency: 4, dosukoi: 6, mediumSalmonid: 6, lesserSalmonid: 6, kohaku: 5, tower: 3, catapult: 6, cannon: 5, pillar: 7, mole: 6, pan: 9, pot: 9, snake: 6, diver: 6, bomb: 5 },
+    'ヴァリアブルローラー': { mobility: 6, painting: 8, inkEfficiency: 6, dosukoi: 7, mediumSalmonid: 7, lesserSalmonid: 7, kohaku: 4, tower: 3, catapult: 5, cannon: 4, pillar: 6, mole: 5, pan: 7, pot: 7, snake: 5, diver: 5, bomb: 4 },
+    'ワイドローラー': { mobility: 5, painting: 9, inkEfficiency: 6, dosukoi: 7, mediumSalmonid: 7, lesserSalmonid: 7, kohaku: 4, tower: 2, catapult: 5, cannon: 4, pillar: 6, mole: 5, pan: 8, pot: 8, snake: 5, diver: 5, bomb: 4 },
+    'ビッグスウィッグローラー': { mobility: 2, painting: 10, inkEfficiency: 3, dosukoi: 5, mediumSalmonid: 5, lesserSalmonid: 5, kohaku: 6, tower: 4, catapult: 7, cannon: 6, pillar: 8, mole: 7, pan: 9, pot: 9, snake: 7, diver: 7, bomb: 6 },
+    'スプラチャージャー': { mobility: 3, painting: 4, inkEfficiency: 5, dosukoi: 4, mediumSalmonid: 4, lesserSalmonid: 4, kohaku: 9, tower: 10, catapult: 8, cannon: 9, pillar: 8, mole: 8, pan: 6, pot: 6, snake: 9, diver: 9, bomb: 8 },
+    'スクイックリンα': { mobility: 6, painting: 3, inkEfficiency: 9, dosukoi: 5, mediumSalmonid: 5, lesserSalmonid: 5, kohaku: 8, tower: 9, catapult: 7, cannon: 8, pillar: 7, mole: 7, pan: 5, pot: 5, snake: 8, diver: 8, bomb: 7 },
+    'リッター4K': { mobility: 1, painting: 3, inkEfficiency: 3, dosukoi: 3, mediumSalmonid: 3, lesserSalmonid: 3, kohaku: 10, tower: 10, catapult: 9, cannon: 10, pillar: 9, mole: 9, pan: 5, pot: 5, snake: 10, diver: 10, bomb: 9 },
+    '14式竹筒銃・甲': { mobility: 6, painting: 3, inkEfficiency: 9, dosukoi: 5, mediumSalmonid: 5, lesserSalmonid: 5, kohaku: 8, tower: 9, catapult: 7, cannon: 8, pillar: 7, mole: 7, pan: 5, pot: 5, snake: 8, diver: 8, bomb: 7 },
+    'ソイチューバー': { mobility: 5, painting: 4, inkEfficiency: 7, dosukoi: 5, mediumSalmonid: 5, lesserSalmonid: 5, kohaku: 7, tower: 8, catapult: 6, cannon: 7, pillar: 6, mole: 6, pan: 5, pot: 5, snake: 7, diver: 7, bomb: 6 },
+    'R-PEN/5H': { mobility: 4, painting: 4, inkEfficiency: 6, dosukoi: 4, mediumSalmonid: 4, lesserSalmonid: 4, kohaku: 8, tower: 9, catapult: 7, cannon: 8, pillar: 7, mole: 7, pan: 5, pot: 5, snake: 8, diver: 8, bomb: 7 },
+    'R-PEN/5B': { mobility: 4, painting: 4, inkEfficiency: 6, dosukoi: 4, mediumSalmonid: 4, lesserSalmonid: 4, kohaku: 8, tower: 9, catapult: 7, cannon: 8, pillar: 7, mole: 7, pan: 5, pot: 5, snake: 8, diver: 8, bomb: 7 },
+    'ホットブラスター': { mobility: 5, painting: 5, inkEfficiency: 5, dosukoi: 6, mediumSalmonid: 6, lesserSalmonid: 6, kohaku: 8, tower: 7, catapult: 8, cannon: 8, pillar: 7, mole: 8, pan: 7, pot: 8, snake: 7, diver: 8, bomb: 9 },
+    'ロングブラスター': { mobility: 3, painting: 4, inkEfficiency: 4, dosukoi: 5, mediumSalmonid: 5, lesserSalmonid: 5, kohaku: 9, tower: 8, catapult: 9, cannon: 9, pillar: 8, mole: 9, pan: 6, pot: 7, snake: 8, diver: 9, bomb: 9 },
+    'クラッシュブラスター': { mobility: 7, painting: 6, inkEfficiency: 6, dosukoi: 7, mediumSalmonid: 7, lesserSalmonid: 7, kohaku: 7, tower: 6, catapult: 7, cannon: 7, pillar: 6, mole: 7, pan: 6, pot: 7, snake: 6, diver: 7, bomb: 8 },
+    'ラピッドブラスター': { mobility: 6, painting: 5, inkEfficiency: 6, dosukoi: 6, mediumSalmonid: 6, lesserSalmonid: 6, kohaku: 7, tower: 7, catapult: 7, cannon: 7, pillar: 7, mole: 7, pan: 6, pot: 7, snake: 7, diver: 7, bomb: 8 },
+    'ラピッドブラスタープロ': { mobility: 4, painting: 4, inkEfficiency: 5, dosukoi: 5, mediumSalmonid: 5, lesserSalmonid: 5, kohaku: 8, tower: 8, catapult: 8, cannon: 8, pillar: 8, mole: 8, pan: 6, pot: 7, snake: 8, diver: 8, bomb: 8 },
+    'Rブラスターエリート': { mobility: 5, painting: 4, inkEfficiency: 5, dosukoi: 5, mediumSalmonid: 5, lesserSalmonid: 5, kohaku: 8, tower: 7, catapult: 8, cannon: 8, pillar: 7, mole: 8, pan: 6, pot: 7, snake: 7, diver: 8, bomb: 8 },
+    'S-BLAST92': { mobility: 6, painting: 5, inkEfficiency: 6, dosukoi: 6, mediumSalmonid: 6, lesserSalmonid: 6, kohaku: 7, tower: 7, catapult: 7, cannon: 7, pillar: 7, mole: 7, pan: 6, pot: 7, snake: 7, diver: 7, bomb: 8 },
+    'ノヴァブラスター': { mobility: 8, painting: 6, inkEfficiency: 7, dosukoi: 7, mediumSalmonid: 7, lesserSalmonid: 7, kohaku: 6, tower: 5, catapult: 6, cannon: 6, pillar: 5, mole: 6, pan: 6, pot: 6, snake: 5, diver: 6, bomb: 7 },
+    'バケットスロッシャー': { mobility: 5, painting: 7, inkEfficiency: 7, dosukoi: 6, mediumSalmonid: 6, lesserSalmonid: 6, kohaku: 7, tower: 5, catapult: 6, cannon: 6, pillar: 6, mole: 6, pan: 7, pot: 8, snake: 6, diver: 7, bomb: 6 },
+    'ヒッセン': { mobility: 6, painting: 8, inkEfficiency: 6, dosukoi: 7, mediumSalmonid: 7, lesserSalmonid: 7, kohaku: 6, tower: 4, catapult: 5, cannon: 5, pillar: 5, mole: 5, pan: 7, pot: 8, snake: 5, diver: 6, bomb: 5 },
+    'スクリュースロッシャー': { mobility: 4, painting: 6, inkEfficiency: 5, dosukoi: 5, mediumSalmonid: 5, lesserSalmonid: 5, kohaku: 8, tower: 6, catapult: 7, cannon: 7, pillar: 7, mole: 7, pan: 6, pot: 7, snake: 7, diver: 7, bomb: 6 },
+    'オーバーフロッシャー': { mobility: 3, painting: 8, inkEfficiency: 4, dosukoi: 5, mediumSalmonid: 5, lesserSalmonid: 5, kohaku: 9, tower: 7, catapult: 8, cannon: 8, pillar: 8, mole: 8, pan: 6, pot: 7, snake: 8, diver: 8, bomb: 7 },
+    'エクスプロッシャー': { mobility: 2, painting: 9, inkEfficiency: 3, dosukoi: 4, mediumSalmonid: 4, lesserSalmonid: 4, kohaku: 9, tower: 8, catapult: 9, cannon: 9, pillar: 9, mole: 9, pan: 5, pot: 6, snake: 9, diver: 9, bomb: 8 },
+    'モップリン': { mobility: 7, painting: 6, inkEfficiency: 7, dosukoi: 7, mediumSalmonid: 7, lesserSalmonid: 7, kohaku: 5, tower: 4, catapult: 5, cannon: 5, pillar: 5, mole: 5, pan: 6, pot: 7, snake: 5, diver: 5, bomb: 5 },
+    'ドレッジャー': { mobility: 4, painting: 7, inkEfficiency: 5, dosukoi: 5, mediumSalmonid: 5, lesserSalmonid: 5, kohaku: 7, tower: 6, catapult: 7, cannon: 7, pillar: 7, mole: 7, pan: 6, pot: 7, snake: 7, diver: 7, bomb: 6 },
+    'スプラスピナー': { mobility: 4, painting: 8, inkEfficiency: 5, dosukoi: 7, mediumSalmonid: 7, lesserSalmonid: 7, kohaku: 7, tower: 6, catapult: 7, cannon: 7, pillar: 7, mole: 7, pan: 7, pot: 6, snake: 7, diver: 7, bomb: 6 },
+    'バレルスピナー': { mobility: 2, painting: 9, inkEfficiency: 3, dosukoi: 6, mediumSalmonid: 6, lesserSalmonid: 6, kohaku: 8, tower: 7, catapult: 8, cannon: 8, pillar: 8, mole: 8, pan: 7, pot: 6, snake: 8, diver: 8, bomb: 7 },
+    'ハイドラント': { mobility: 1, painting: 10, inkEfficiency: 2, dosukoi: 5, mediumSalmonid: 5, lesserSalmonid: 5, kohaku: 9, tower: 8, catapult: 9, cannon: 9, pillar: 9, mole: 9, pan: 6, pot: 5, snake: 9, diver: 9, bomb: 8 },
+    'クーゲルシュライバー': { mobility: 3, painting: 8, inkEfficiency: 4, dosukoi: 6, mediumSalmonid: 6, lesserSalmonid: 6, kohaku: 8, tower: 7, catapult: 8, cannon: 8, pillar: 8, mole: 8, pan: 7, pot: 6, snake: 8, diver: 8, bomb: 7 },
+    'ノーチラス47': { mobility: 5, painting: 7, inkEfficiency: 6, dosukoi: 6, mediumSalmonid: 6, lesserSalmonid: 6, kohaku: 7, tower: 6, catapult: 7, cannon: 7, pillar: 7, mole: 7, pan: 7, pot: 6, snake: 7, diver: 7, bomb: 6 },
+    'イグザミナー': { mobility: 6, painting: 6, inkEfficiency: 7, dosukoi: 6, mediumSalmonid: 6, lesserSalmonid: 6, kohaku: 6, tower: 6, catapult: 6, cannon: 6, pillar: 6, mole: 6, pan: 6, pot: 6, snake: 6, diver: 6, bomb: 6 },
+    'パブロ': { mobility: 10, painting: 9, inkEfficiency: 9, dosukoi: 9, mediumSalmonid: 9, lesserSalmonid: 9, kohaku: 2, tower: 1, catapult: 2, cannon: 2, pillar: 3, mole: 2, pan: 7, pot: 6, snake: 2, diver: 2, bomb: 2 },
+    'ホクサイ': { mobility: 8, painting: 8, inkEfficiency: 8, dosukoi: 8, mediumSalmonid: 8, lesserSalmonid: 8, kohaku: 3, tower: 2, catapult: 3, cannon: 3, pillar: 4, mole: 3, pan: 7, pot: 7, snake: 3, diver: 3, bomb: 3 },
+    'フィンセント': { mobility: 7, painting: 7, inkEfficiency: 7, dosukoi: 7, mediumSalmonid: 7, lesserSalmonid: 7, kohaku: 4, tower: 3, catapult: 4, cannon: 4, pillar: 5, mole: 4, pan: 6, pot: 6, snake: 4, diver: 4, bomb: 4 },
+    'スプラマニューバー': { mobility: 8, painting: 6, inkEfficiency: 7, dosukoi: 7, mediumSalmonid: 7, lesserSalmonid: 7, kohaku: 6, tower: 5, catapult: 6, cannon: 6, pillar: 6, mole: 6, pan: 7, pot: 6, snake: 6, diver: 6, bomb: 6 },
+    'スパッタリー': { mobility: 9, painting: 5, inkEfficiency: 8, dosukoi: 7, mediumSalmonid: 7, lesserSalmonid: 7, kohaku: 5, tower: 4, catapult: 5, cannon: 5, pillar: 5, mole: 5, pan: 6, pot: 5, snake: 5, diver: 5, bomb: 5 },
+    'ケルビン525': { mobility: 7, painting: 7, inkEfficiency: 6, dosukoi: 7, mediumSalmonid: 7, lesserSalmonid: 7, kohaku: 6, tower: 5, catapult: 6, cannon: 6, pillar: 6, mole: 6, pan: 7, pot: 6, snake: 6, diver: 6, bomb: 6 },
+    'デュアルスイーパー': { mobility: 6, painting: 8, inkEfficiency: 5, dosukoi: 7, mediumSalmonid: 7, lesserSalmonid: 7, kohaku: 7, tower: 6, catapult: 7, cannon: 7, pillar: 7, mole: 7, pan: 7, pot: 6, snake: 7, diver: 7, bomb: 6 },
+    'クアッドホッパーブラック': { mobility: 10, painting: 4, inkEfficiency: 7, dosukoi: 6, mediumSalmonid: 6, lesserSalmonid: 6, kohaku: 5, tower: 4, catapult: 5, cannon: 5, pillar: 5, mole: 5, pan: 6, pot: 5, snake: 5, diver: 5, bomb: 5 },
+    'ガエンFF': { mobility: 5, painting: 6, inkEfficiency: 5, dosukoi: 6, mediumSalmonid: 6, lesserSalmonid: 6, kohaku: 7, tower: 6, catapult: 7, cannon: 7, pillar: 7, mole: 7, pan: 7, pot: 6, snake: 7, diver: 7, bomb: 6 },
+    'ドライブワイパー': { mobility: 8, painting: 7, inkEfficiency: 7, dosukoi: 8, mediumSalmonid: 8, lesserSalmonid: 8, kohaku: 5, tower: 4, catapult: 5, cannon: 5, pillar: 5, mole: 5, pan: 7, pot: 6, snake: 5, diver: 5, bomb: 5 },
+    'ジムワイパー': { mobility: 6, painting: 6, inkEfficiency: 6, dosukoi: 7, mediumSalmonid: 7, lesserSalmonid: 7, kohaku: 6, tower: 5, catapult: 6, cannon: 6, pillar: 6, mole: 6, pan: 7, pot: 6, snake: 6, diver: 6, bomb: 6 },
+    'パラシェルター': { mobility: 4, painting: 6, inkEfficiency: 5, dosukoi: 5, mediumSalmonid: 5, lesserSalmonid: 5, kohaku: 7, tower: 8, catapult: 7, cannon: 7, pillar: 7, mole: 7, pan: 6, pot: 6, snake: 7, diver: 7, bomb: 6 },
+    'キャンピングシェルター': { mobility: 2, painting: 5, inkEfficiency: 4, dosukoi: 4, mediumSalmonid: 4, lesserSalmonid: 4, kohaku: 8, tower: 9, catapult: 8, cannon: 8, pillar: 8, mole: 8, pan: 5, pot: 5, snake: 8, diver: 8, bomb: 7 },
+    'スパイガジェット': { mobility: 6, painting: 5, inkEfficiency: 6, dosukoi: 5, mediumSalmonid: 5, lesserSalmonid: 5, kohaku: 6, tower: 7, catapult: 6, cannon: 6, pillar: 6, mole: 6, pan: 6, pot: 6, snake: 6, diver: 6, bomb: 6 },
+    'トライストリンガー': { mobility: 5, painting: 5, inkEfficiency: 6, dosukoi: 5, mediumSalmonid: 5, lesserSalmonid: 5, kohaku: 7, tower: 8, catapult: 7, cannon: 7, pillar: 7, mole: 7, pan: 6, pot: 6, snake: 7, diver: 7, bomb: 7 },
+    'LACT-450': { mobility: 4, painting: 4, inkEfficiency: 5, dosukoi: 4, mediumSalmonid: 4, lesserSalmonid: 4, kohaku: 8, tower: 9, catapult: 8, cannon: 8, pillar: 8, mole: 8, pan: 5, pot: 5, snake: 8, diver: 8, bomb: 8 },
+    'クマサン印のチャージャー': { mobility: 2, painting: 3, inkEfficiency: 2, dosukoi: 3, mediumSalmonid: 3, lesserSalmonid: 3, kohaku: 10, tower: 10, catapult: 10, cannon: 10, pillar: 10, mole: 10, pan: 7, pot: 7, snake: 10, diver: 10, bomb: 10 },
+    'クマサン印のブラスター': { mobility: 4, painting: 6, inkEfficiency: 4, dosukoi: 6, mediumSalmonid: 6, lesserSalmonid: 6, kohaku: 9, tower: 8, catapult: 9, cannon: 9, pillar: 8, mole: 9, pan: 8, pot: 9, snake: 8, diver: 9, bomb: 10 },
+    'クマサン印のスロッシャー': { mobility: 3, painting: 9, inkEfficiency: 3, dosukoi: 6, mediumSalmonid: 6, lesserSalmonid: 6, kohaku: 9, tower: 7, catapult: 8, cannon: 8, pillar: 8, mole: 8, pan: 7, pot: 8, snake: 8, diver: 8, bomb: 8 },
+    'クマサン印のマニューバー': { mobility: 7, painting: 7, inkEfficiency: 6, dosukoi: 7, mediumSalmonid: 7, lesserSalmonid: 7, kohaku: 7, tower: 6, catapult: 7, cannon: 7, pillar: 7, mole: 7, pan: 8, pot: 7, snake: 7, diver: 7, bomb: 7 },
+    'クマサン印のシェルター': { mobility: 3, painting: 6, inkEfficiency: 4, dosukoi: 5, mediumSalmonid: 5, lesserSalmonid: 5, kohaku: 8, tower: 9, catapult: 8, cannon: 8, pillar: 8, mole: 8, pan: 7, pot: 7, snake: 8, diver: 8, bomb: 8 },
+    'クマサン印のストリンガー': { mobility: 4, painting: 5, inkEfficiency: 5, dosukoi: 5, mediumSalmonid: 5, lesserSalmonid: 5, kohaku: 8, tower: 9, catapult: 8, cannon: 8, pillar: 8, mole: 8, pan: 6, pot: 6, snake: 8, diver: 8, bomb: 8 },
+    'クマサン印のワイパー': { mobility: 7, painting: 8, inkEfficiency: 6, dosukoi: 8, mediumSalmonid: 8, lesserSalmonid: 8, kohaku: 6, tower: 5, catapult: 6, cannon: 6, pillar: 6, mole: 6, pan: 8, pot: 7, snake: 6, diver: 6, bomb: 6 },
+    'クマサン印のローラー': { mobility: 6, painting: 10, inkEfficiency: 7, dosukoi: 8, mediumSalmonid: 8, lesserSalmonid: 8, kohaku: 4, tower: 3, catapult: 5, cannon: 4, pillar: 6, mole: 5, pan: 9, pot: 9, snake: 5, diver: 5, bomb: 4 }
   })
 
   const weaponList = Object.keys(weaponDatabase)
@@ -116,7 +136,9 @@ function App() {
         mobility: 0,
         painting: 0,
         inkEfficiency: 0,
-        lesserSalmonidProcessing: 0,
+        dosukoi: 0,
+      mediumSalmonid: 0,
+      lesserSalmonid: 0,
         kohaku: 0,
         tower: 0,
         catapult: 0,
@@ -137,7 +159,9 @@ function App() {
         mobility: acc.mobility + stats.mobility,
         painting: acc.painting + stats.painting,
         inkEfficiency: acc.inkEfficiency + stats.inkEfficiency,
-        lesserSalmonidProcessing: acc.lesserSalmonidProcessing + stats.lesserSalmonidProcessing,
+        dosukoi: acc.dosukoi + stats.dosukoi,
+        mediumSalmonid: acc.mediumSalmonid + stats.mediumSalmonid,
+        lesserSalmonid: acc.lesserSalmonid + stats.lesserSalmonid,
         kohaku: acc.kohaku + stats.kohaku,
         tower: acc.tower + stats.tower,
         catapult: acc.catapult + stats.catapult,
@@ -154,7 +178,9 @@ function App() {
       mobility: 0,
       painting: 0,
       inkEfficiency: 0,
-      lesserSalmonidProcessing: 0,
+      dosukoi: 0,
+      mediumSalmonid: 0,
+      lesserSalmonid: 0,
       kohaku: 0,
       tower: 0,
       catapult: 0,
@@ -172,7 +198,9 @@ function App() {
       mobility: Math.round(totals.mobility / validWeapons.length),
       painting: Math.round(totals.painting / validWeapons.length),
       inkEfficiency: Math.round(totals.inkEfficiency / validWeapons.length),
-      lesserSalmonidProcessing: Math.round(totals.lesserSalmonidProcessing / validWeapons.length),
+      dosukoi: Math.round(totals.dosukoi / validWeapons.length),
+      mediumSalmonid: Math.round(totals.mediumSalmonid / validWeapons.length),
+      lesserSalmonid: Math.round(totals.lesserSalmonid / validWeapons.length),
       kohaku: Math.round(totals.kohaku / validWeapons.length),
       tower: Math.round(totals.tower / validWeapons.length),
       catapult: Math.round(totals.catapult / validWeapons.length),
@@ -193,7 +221,9 @@ function App() {
       { subject: '機動力', value: teamStats.mobility, fullMark: 10 },
       { subject: '塗り', value: teamStats.painting, fullMark: 10 },
       { subject: 'インク効率', value: teamStats.inkEfficiency, fullMark: 10 },
-      { subject: '小ジャケ処理', value: teamStats.lesserSalmonidProcessing, fullMark: 10 },
+      { subject: 'ドスコイ', value: teamStats.dosukoi, fullMark: 10 },
+      { subject: '中シャケ', value: teamStats.mediumSalmonid, fullMark: 10 },
+      { subject: '小ジャケ', value: teamStats.lesserSalmonid, fullMark: 10 },
       { subject: 'コウモリ', value: teamStats.kohaku, fullMark: 10 },
       { subject: 'タワー', value: teamStats.tower, fullMark: 10 },
       { subject: 'カタパッド', value: teamStats.catapult, fullMark: 10 },
@@ -215,13 +245,15 @@ function App() {
   }
 
   const updateWeaponStat = (weaponName: string, stat: keyof WeaponStats, value: number) => {
-    setWeaponDatabase(prev => ({
-      ...prev,
+    const updatedDatabase = {
+      ...weaponDatabase,
       [weaponName]: {
-        ...prev[weaponName],
+        ...weaponDatabase[weaponName],
         [stat]: Math.max(0, Math.min(10, value))
       }
-    }))
+    }
+    setWeaponDatabase(updatedDatabase)
+    localStorage.setItem('splatoon3-weapon-database', JSON.stringify(updatedDatabase))
   }
 
   const addNewWeapon = () => {
@@ -232,7 +264,9 @@ function App() {
         mobility: 5,
         painting: 5,
         inkEfficiency: 5,
-        lesserSalmonidProcessing: 5,
+        dosukoi: 5,
+        mediumSalmonid: 5,
+        lesserSalmonid: 5,
         kohaku: 5,
         tower: 5,
         catapult: 5,
@@ -339,7 +373,9 @@ function App() {
                       mobility: '機動力',
                       painting: '塗り',
                       inkEfficiency: 'インク効率',
-                      lesserSalmonidProcessing: '小ジャケ処理',
+                      dosukoi: 'ドスコイ',
+                      mediumSalmonid: '中シャケ',
+                      lesserSalmonid: '小ジャケ',
                       kohaku: 'コウモリ',
                       tower: 'タワー',
                       catapult: 'カタパッド',
@@ -398,7 +434,9 @@ function App() {
                               mobility: '機動力',
                               painting: '塗り',
                               inkEfficiency: 'インク効率',
-                              lesserSalmonidProcessing: '小ジャケ処理',
+                              dosukoi: 'ドスコイ',
+                              mediumSalmonid: '中シャケ',
+                              lesserSalmonid: '小ジャケ',
                               kohaku: 'コウモリ',
                               tower: 'タワー',
                               catapult: 'カタパッド',
